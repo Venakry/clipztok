@@ -2,20 +2,21 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Clipz 2.5</title>
+  <title>Clipz 3.0</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    body { margin: 0; padding: 0; background: black; color: white; font-family: Arial, sans-serif; overflow: hidden; }
+    body { margin: 0; padding: 0; background: #000; color: #fff; font-family: Arial, sans-serif; overflow: hidden; }
     .section { display: none; flex-direction: column; align-items: center; justify-content: center; height: 100vh; }
-    .btn { margin: 10px; padding: 10px 20px; background: #444; color: white; border: none; cursor: pointer; }
+    .btn { margin: 10px; padding: 10px 20px; background: #444; color: white; border: none; cursor: pointer; border-radius: 10px; }
     .feed { height: 100vh; overflow-y: scroll; scroll-snap-type: y mandatory; }
     .feed video { width: 100%; height: 100vh; object-fit: cover; scroll-snap-align: start; }
-    .profile-pic { width: 100px; height: 100px; border-radius: 50%; margin: 10px; object-fit: cover; }
+    .profile-pic { width: 120px; height: 120px; border-radius: 50%; margin: 10px; object-fit: cover; border: 2px solid white; }
     .bottom-nav { position: fixed; bottom: 0; width: 100%; background: #111; display: flex; justify-content: space-around; padding: 10px; }
     .uploads { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-top: 10px; }
     .uploads video { width: 100%; height: auto; }
-    input, button { margin: 5px; padding: 10px; font-size: 16px; }
+    input, button { margin: 5px; padding: 10px; font-size: 16px; border-radius: 8px; }
     #searchResults div { margin: 5px; padding: 5px; cursor: pointer; border-bottom: 1px solid #555; }
+    .like-btn, .comment-btn, .delete-btn { margin: 5px; padding: 5px 10px; background: #222; color: white; border: none; border-radius: 5px; font-size: 14px; }
     .warning { color: red; }
   </style>
 </head>
@@ -48,8 +49,6 @@
   <h1>Clipz</h1>
   <input id="searchInput" placeholder="Search Username" oninput="searchUsers()">
   <div id="searchResults"></div>
-  <input id="uploadVideo" type="file" accept="video/*" onchange="uploadVideo()">
-  <div id="uploadProgress"></div>
   <button id="loginLogoutBtn" class="btn" onclick="logout()">Log Out</button>
 </div>
 
@@ -63,7 +62,8 @@
   <img id="profilePic" class="profile-pic" src="clipz pfp.jpg">
   <h2 id="profileUsername">Username</h2>
   <div id="followerCount">Followers: 0</div>
-  <button id="followBtn" class="btn" onclick="followUser()">Follow</button>
+  <input id="uploadVideo" type="file" accept="video/*" onchange="uploadVideo()">
+  <div id="uploadProgress"></div>
   <div id="uploadsList" class="uploads"></div>
 </div>
 
@@ -74,6 +74,7 @@
   <div class="nav-icon" onclick="showProfile()">👤</div>
 </div>
 
+<!-- MAIN SCRIPT -->
 <script type="module">
 
 const supabase = window.supabase.createClient(
@@ -84,10 +85,10 @@ const supabase = window.supabase.createClient(
 let viewingUserId = null;
 let currentProfile = null;
 
-window.hideAll = function() {
-  document.querySelectorAll('.section').forEach(div => div.style.display = 'none');
+function hideAll() {
+  document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
   document.getElementById('bottomNav').style.display = 'none';
-};
+}
 
 window.showLogin = function() {
   hideAll();
@@ -118,7 +119,7 @@ window.showProfile = async function() {
   loadProfile(user.id);
 };
 
-window.createAccount = async function() {
+async function createAccount() {
   const email = document.getElementById('signupEmail').value;
   const password = document.getElementById('signupPassword').value;
   const username = document.getElementById('signupUsername').value;
@@ -141,64 +142,32 @@ window.createAccount = async function() {
 
   await supabase.from('profiles').insert([{ id: signup.user.id, username, pfp_url: pfpUrl, followers: 0 }]);
   showLogin();
-};
+}
 
-window.login = async function() {
+async function login() {
   const email = document.getElementById('loginEmail').value;
   const password = document.getElementById('loginPassword').value;
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) alert(error.message);
   else showHome();
-};
+}
 
-window.logout = async function() {
+async function logout() {
   await supabase.auth.signOut();
   showLogin();
-};
+}
 
-window.loadProfile = async function(userId) {
-  hideAll();
-  document.getElementById('profileScreen').style.display = 'flex';
-  document.getElementById('bottomNav').style.display = 'flex';
-  viewingUserId = userId;
-
-  const { data: profile } = await supabase.from('profiles').select().eq('id', userId).single();
-  if (profile) {
-    document.getElementById('profileUsername').innerText = profile.username;
-    document.getElementById('profilePic').src = profile.pfp_url || 'clipz pfp.jpg';
-    document.getElementById('followerCount').innerText = `Followers: ${profile.followers}`;
-  }
-};
-
-window.searchUsers = async function() {
-  const query = document.getElementById('searchInput').value;
-  const { data } = await supabase.from('profiles').select().ilike('username', `%${query}%`);
-  const results = document.getElementById('searchResults');
-  results.innerHTML = '';
-  if (data) {
-    data.forEach(profile => {
-      const div = document.createElement('div');
-      div.innerText = profile.username;
-      div.onclick = () => loadProfile(profile.id);
-      results.appendChild(div);
-    });
-  }
-};
-
-window.uploadVideo = async function() {
+async function uploadVideo() {
   const file = document.getElementById('uploadVideo').files[0];
   if (!file) return;
   const path = `uploads/${Date.now()}_${file.name}`;
-  const { data, error } = await supabase.storage.from('videos').upload(path, file);
-  if (error) {
-    alert('Upload failed.');
-  } else {
-    document.getElementById('uploadProgress').innerText = 'Upload complete!';
-    loadFeed();
-  }
-};
+  await supabase.storage.from('videos').upload(path, file);
+  document.getElementById('uploadProgress').innerText = "Uploaded!";
+  loadFeed();
+  loadProfile();
+}
 
-window.loadFeed = async function() {
+async function loadFeed() {
   const { data } = await supabase.storage.from('videos').list('uploads');
   const feedList = document.getElementById('feedList');
   feedList.innerHTML = '';
@@ -214,10 +183,64 @@ window.loadFeed = async function() {
       vid.loop = true;
       vid.volume = 1.0;
       feedList.appendChild(vid);
+
+      // Like button
+      const likeBtn = document.createElement('button');
+      likeBtn.className = 'like-btn';
+      likeBtn.innerText = '❤️ Like';
+      likeBtn.onclick = () => alert('Liked (future feature)');
+      feedList.appendChild(likeBtn);
+
+      // Comment button
+      const commentBtn = document.createElement('button');
+      commentBtn.className = 'comment-btn';
+      commentBtn.innerText = '💬 Comment';
+      commentBtn.onclick = () => alert('Comments soon!');
+      feedList.appendChild(commentBtn);
     });
   }
   setupSnapScroll();
-};
+}
+
+async function loadProfile(userId) {
+  hideAll();
+  document.getElementById('profileScreen').style.display = 'flex';
+  document.getElementById('bottomNav').style.display = 'flex';
+  viewingUserId = userId;
+
+  const { data: profile } = await supabase.from('profiles').select().eq('id', userId).single();
+  if (profile) {
+    document.getElementById('profileUsername').innerText = profile.username;
+    document.getElementById('profilePic').src = profile.pfp_url || 'clipz pfp.jpg';
+    document.getElementById('followerCount').innerText = `Followers: ${profile.followers}`;
+  }
+
+  const { data: uploads } = await supabase.storage.from('videos').list('uploads');
+  const uploadsList = document.getElementById('uploadsList');
+  uploadsList.innerHTML = '';
+
+  if (uploads) {
+    uploads.forEach(file => {
+      const url = supabase.storage.from('videos').getPublicUrl('uploads/' + file.name).data.publicUrl;
+      const vid = document.createElement('video');
+      vid.src = url;
+      vid.controls = true;
+      uploadsList.appendChild(vid);
+
+      // Delete button
+      const delBtn = document.createElement('button');
+      delBtn.className = 'delete-btn';
+      delBtn.innerText = '🗑️ Delete';
+      delBtn.onclick = async () => {
+        await supabase.storage.from('videos').remove(['uploads/' + file.name]);
+        alert('Deleted!');
+        loadProfile(userId);
+        loadFeed();
+      };
+      uploadsList.appendChild(delBtn);
+    });
+  }
+}
 
 function setupSnapScroll() {
   const feed = document.getElementById('feedList');
@@ -236,7 +259,6 @@ function setupSnapScroll() {
     videos.forEach(video => {
       if (video === closest) {
         video.play();
-        video.volume = 1.0;
       } else {
         video.pause();
       }
@@ -244,27 +266,23 @@ function setupSnapScroll() {
   });
 }
 
-window.followUser = async function() {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user || !viewingUserId) return;
-
-  const { data: existingFollow } = await supabase.from('follows')
-    .select()
-    .eq('follower_id', user.id)
-    .eq('following_id', viewingUserId)
-    .maybeSingle();
-
-  if (existingFollow) {
-    await supabase.from('follows').delete().match({ follower_id: user.id, following_id: viewingUserId });
-  } else {
-    await supabase.from('follows').insert([{ follower_id: user.id, following_id: viewingUserId }]);
+async function searchUsers() {
+  const query = document.getElementById('searchInput').value;
+  const { data } = await supabase.from('profiles').select().ilike('username', `%${query}%`);
+  const results = document.getElementById('searchResults');
+  results.innerHTML = '';
+  if (data) {
+    data.forEach(profile => {
+      const div = document.createElement('div');
+      div.innerText = profile.username;
+      div.onclick = () => loadProfile(profile.id);
+      results.appendChild(div);
+    });
   }
-  loadProfile(viewingUserId);
-};
+}
 
-window.showLogin(); // Default screen
+showLogin(); // Default screen
 
 </script>
-
 </body>
 </html>
