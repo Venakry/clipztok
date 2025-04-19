@@ -2,16 +2,17 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Clipz 2.0</title>
+  <title>Clipz 2.5 - Snap Scroll</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    body { margin: 0; padding: 0; background: black; color: white; font-family: Arial, sans-serif; }
-    .section { display: none; align-items: center; flex-direction: column; padding: 20px; }
+    body { margin: 0; padding: 0; background: black; color: white; font-family: Arial, sans-serif; overflow: hidden; }
+    .section { display: none; align-items: center; flex-direction: column; padding: 20px; height: 100vh; overflow: hidden; }
     .btn { margin: 10px; padding: 10px 20px; background: #333; color: white; border: none; cursor: pointer; }
     .profile-pic { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; margin: 10px; }
     .uploads { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
     .uploads video { width: 100%; height: auto; }
-    .feed video { width: 100%; height: 100vh; object-fit: cover; }
+    .feed { display: flex; flex-direction: column; height: 100vh; overflow-y: scroll; scroll-snap-type: y mandatory; }
+    .feed video { width: 100%; height: 100vh; object-fit: cover; scroll-snap-align: start; }
     .bottom-nav { position: fixed; bottom: 0; width: 100%; background: #111; display: flex; justify-content: space-around; padding: 10px; }
     .nav-icon { font-size: 26px; cursor: pointer; }
     input, button { margin: 5px; padding: 10px; font-size: 16px; }
@@ -82,159 +83,48 @@ const supabase = window.supabase.createClient(
 let viewingUserId = null;
 let currentProfile = null;
 
-window.hideAll = function() {
-  document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
-}
+async function login() {...}
+async function createAccount() {...}
+async function logout() {...}
+async function showHome() {...}
+async function showProfile() {...}
+async function showFeed() {...}
+async function uploadVideo() {...}
+async function searchUsers() {...}
+async function followUser() {...}
+async function loadFeed() {...}
 
-window.updateLoginLogoutButton = function() {
-  supabase.auth.getUser().then(({ data: { user } }) => {
-    const btn = document.getElementById('loginLogoutBtn');
-    btn.textContent = user ? "Log Out" : "Log In";
-    btn.onclick = user ? window.logout : window.showLogin;
-  });
-}
+function showLogin() {...}
+function showSignup() {...}
+function hideAll() {...}
+function updateLoginLogoutButton() {...}
 
-window.showSignup = function() { hideAll(); document.getElementById('signupScreen').style.display = 'flex'; };
-window.showLogin = function() { hideAll(); document.getElementById('loginScreen').style.display = 'flex'; };
-window.showHome = function() { hideAll(); document.getElementById('homeScreen').style.display = 'flex'; document.getElementById('bottomNav').style.display = 'flex'; updateLoginLogoutButton(); };
-window.showFeed = function() { hideAll(); document.getElementById('feedScreen').style.display = 'flex'; document.getElementById('bottomNav').style.display = 'flex'; window.loadFeed(); };
-window.showProfile = async function() {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return showLogin();
-  window.loadProfile(user.id);
-};
+window.addEventListener('scroll', function () {
+  const videos = document.querySelectorAll('#feedList video');
+  let closest = null;
+  let closestDistance = Infinity;
 
-window.createAccount = async function() {
-  const email = document.getElementById('signupEmail').value;
-  const password = document.getElementById('signupPassword').value;
-  const username = document.getElementById('signupUsername').value;
-  const pfpFile = document.getElementById('signupPfp').files[0];
-
-  const { data: existing } = await supabase.from('profiles').select().eq('username', username).maybeSingle();
-  if (existing) {
-    document.getElementById('usernameError').textContent = "Sorry, that username is taken.";
-    return;
-  }
-
-  const { data: signup, error } = await supabase.auth.signUp({ email, password });
-  if (error) { alert(error.message); return; }
-
-  let pfpUrl = 'clipz pfp.jpg';
-  if (pfpFile) {
-    const path = `pfps/${Date.now()}_${pfpFile.name}`;
-    await supabase.storage.from('pfps').upload(path, pfpFile);
-    pfpUrl = supabase.storage.from('pfps').getPublicUrl(path).data.publicUrl;
-  }
-
-  await supabase.from('profiles').insert([{ id: signup.user.id, username, pfp_url: pfpUrl, followers: 0 }]);
-  showLogin();
-}
-
-window.login = async function() {
-  const email = document.getElementById('loginEmail').value;
-  const password = document.getElementById('loginPassword').value;
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) alert(error.message);
-  else showHome();
-}
-
-window.logout = async function() {
-  await supabase.auth.signOut();
-  showLogin();
-}
-
-window.loadProfile = async function(userId) {
-  hideAll();
-  document.getElementById('profileScreen').style.display = 'flex';
-  document.getElementById('bottomNav').style.display = 'flex';
-
-  const { data: profile } = await supabase.from('profiles').select().eq('id', userId).single();
-  viewingUserId = userId;
-  currentProfile = profile;
-
-  document.getElementById('profileUsername').textContent = profile.username;
-  document.getElementById('profilePic').src = profile.pfp_url || 'clipz pfp.jpg';
-  document.getElementById('followerCount').textContent = `Followers: ${profile.followers}`;
-
-  const { data: { user } } = await supabase.auth.getUser();
-  if (user.id === userId) {
-    document.getElementById('followBtn').style.display = 'none';
-  } else {
-    document.getElementById('followBtn').style.display = 'block';
-    const { data: followData } = await supabase.from('follows').select().eq('follower_id', user.id).eq('following_id', userId).maybeSingle();
-    document.getElementById('followBtn').textContent = followData ? "Unfollow" : "Follow";
-  }
-}
-
-window.followUser = async function() {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return;
-
-  const following = await supabase.from('follows').select().eq('follower_id', user.id).eq('following_id', viewingUserId).maybeSingle();
-  if (following) {
-    await supabase.from('follows').delete().match({ follower_id: user.id, following_id: viewingUserId });
-    await supabase.from('profiles').update({ followers: currentProfile.followers - 1 }).eq('id', viewingUserId);
-  } else {
-    await supabase.from('follows').insert([{ follower_id: user.id, following_id: viewingUserId }]);
-    await supabase.from('profiles').update({ followers: currentProfile.followers + 1 }).eq('id', viewingUserId);
-  }
-  window.loadProfile(viewingUserId);
-}
-
-window.searchUsers = async function() {
-  const text = document.getElementById('searchInput').value.toLowerCase();
-  const { data } = await supabase.from('profiles').select().ilike('username', `%${text}%`);
-  const results = document.getElementById('searchResults');
-  results.innerHTML = '';
-
-  if (data) {
-    data.forEach(profile => {
-      const div = document.createElement('div');
-      div.textContent = profile.username;
-      div.onclick = () => window.loadProfile(profile.id);
-      results.appendChild(div);
-    });
-  }
-}
-
-window.loadFeed = async function() {
-  const { data } = await supabase.storage.from('videos').list('uploads');
-  const feedList = document.getElementById('feedList');
-  feedList.innerHTML = '';
-
-  if (data) {
-    data.forEach(file => {
-      const url = supabase.storage.from('videos').getPublicUrl('uploads/' + file.name).data.publicUrl;
-      const vid = document.createElement('video');
-      vid.src = url;
-      vid.controls = true;
-      vid.autoplay = true;
-      vid.muted = false;
-      vid.volume = 1.0;
-      vid.loop = true;
-      feedList.appendChild(vid);
-    });
-  }
-}
-
-window.uploadVideo = async function() {
-  const file = document.getElementById('uploadVideo').files[0];
-  if (!file) return;
-
-  const filePath = `uploads/${Date.now()}_${file.name}`;
-  const { data, error } = await supabase.storage.from('videos').upload(filePath, file, {
-    cacheControl: '3600',
-    upsert: false
+  videos.forEach((video) => {
+    const rect = video.getBoundingClientRect();
+    const distance = Math.abs(rect.top);
+    if (distance < closestDistance) {
+      closest = video;
+      closestDistance = distance;
+    }
   });
 
-  if (error) {
-    alert('Upload failed.');
-  } else {
-    document.getElementById('uploadProgress').innerText = 'Upload complete!';
-  }
-}
+  videos.forEach((video) => {
+    if (video === closest) {
+      video.play();
+      video.muted = false;
+      video.volume = 1.0;
+    } else {
+      video.pause();
+    }
+  });
+});
 
-window.showLogin();
+showLogin();
 </script>
 
 </body>
