@@ -75,3 +75,241 @@
 
 <!-- REAL FULL SCRIPT CONTINUES BELOW -->
 <script type="module">
+const supabase = window.supabase.createClient(
+  "https://mxrswdcphtnclkioeprj.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im14cnN3ZGNwaHRuY2xraW9lcHJqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDUwODY4MDcsImV4cCI6MjA2MDY2MjgwN30.XjwMaypnmM_RqLkxjKWjw-JbEc9B4bxyoFaxj-Amo_s"
+);
+
+// GLOBALS
+let viewingUserId = null;
+let currentProfile = null;
+
+// Hide all screens
+window.hideAll = function() {
+  document.querySelectorAll('.section').forEach(div => div.style.display = 'none');
+};
+
+// Show login screen
+window.showLogin = function() {
+  hideAll();
+  document.getElementById('loginScreen').style.display = 'flex';
+};
+
+// Show signup screen
+window.showSignup = function() {
+  hideAll();
+  document.getElementById('signupScreen').style.display = 'flex';
+};
+
+// Show home screen
+window.showHome = function() {
+  hideAll();
+  document.getElementById('homeScreen').style.display = 'flex';
+  document.getElementById('bottomNav').style.display = 'flex';
+};
+
+// Show feed screen
+window.showFeed = function() {
+  hideAll();
+  document.getElementById('feedScreen').style.display = 'flex';
+  document.getElementById('bottomNav').style.display = 'flex';
+  loadFeed();
+};
+
+// Show profile screen
+window.showProfile = async function() {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return showLogin();
+  loadProfile(user.id);
+};
+<script type="module">
+
+const supabase = window.supabase.createClient(
+  "https://mxrswdcphtnclkioeprj.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im14cnN3ZGNwaHRuY2xraW9lcHJqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDUwODY4MDcsImV4cCI6MjA2MDY2MjgwN30.XjwMaypnmM_RqLkxjKWjw-JbEc9B4bxyoFaxj-Amo_s"
+);
+
+window.showLogin = function() {
+  hideAll();
+  document.getElementById('loginScreen').style.display = 'flex';
+};
+
+window.showSignup = function() {
+  hideAll();
+  document.getElementById('signupScreen').style.display = 'flex';
+};
+
+window.showHome = function() {
+  hideAll();
+  document.getElementById('homeScreen').style.display = 'flex';
+  document.getElementById('bottomNav').style.display = 'flex';
+};
+
+window.showFeed = function() {
+  hideAll();
+  document.getElementById('feedScreen').style.display = 'flex';
+  document.getElementById('bottomNav').style.display = 'flex';
+  loadFeed();
+};
+
+window.showProfile = async function() {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return showLogin();
+  loadProfile(user.id);
+};
+
+window.hideAll = function() {
+  document.querySelectorAll('.section').forEach(section => section.style.display = 'none');
+  document.getElementById('bottomNav').style.display = 'none';
+};
+
+window.createAccount = async function() {
+  const email = document.getElementById('signupEmail').value;
+  const password = document.getElementById('signupPassword').value;
+  const username = document.getElementById('signupUsername').value;
+  const pfpFile = document.getElementById('signupPfp').files[0];
+
+  const { data: existing } = await supabase.from('profiles').select().eq('username', username).maybeSingle();
+  if (existing) {
+    document.getElementById('usernameError').innerText = "Sorry, that username is taken.";
+    return;
+  }
+
+  const { data: signup, error } = await supabase.auth.signUp({ email, password });
+  if (error) { alert(error.message); return; }
+
+  let pfpUrl = 'clipz pfp.jpg';
+  if (pfpFile) {
+    const { data: uploadData } = await supabase.storage.from('pfps').upload(`pfps/${Date.now()}_${pfpFile.name}`, pfpFile);
+    pfpUrl = supabase.storage.from('pfps').getPublicUrl(uploadData.path).data.publicUrl;
+  }
+
+  await supabase.from('profiles').insert([{ id: signup.user.id, username, pfp_url: pfpUrl, followers: 0 }]);
+  showLogin();
+};
+
+window.login = async function() {
+  const email = document.getElementById('loginEmail').value;
+  const password = document.getElementById('loginPassword').value;
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) alert(error.message);
+  else showHome();
+};
+
+window.logout = async function() {
+  await supabase.auth.signOut();
+  showLogin();
+};
+
+window.loadProfile = async function(userId) {
+  hideAll();
+  document.getElementById('profileScreen').style.display = 'flex';
+  document.getElementById('bottomNav').style.display = 'flex';
+
+  const { data: profile } = await supabase.from('profiles').select().eq('id', userId).single();
+  if (profile) {
+    document.getElementById('profileUsername').innerText = profile.username;
+    document.getElementById('profilePic').src = profile.pfp_url || 'clipz pfp.jpg';
+    document.getElementById('followerCount').innerText = `Followers: ${profile.followers}`;
+  }
+};
+
+window.searchUsers = async function() {
+  const query = document.getElementById('searchInput').value;
+  const { data } = await supabase.from('profiles').select().ilike('username', `%${query}%`);
+  const results = document.getElementById('searchResults');
+  results.innerHTML = '';
+  if (data) {
+    data.forEach(profile => {
+      const div = document.createElement('div');
+      div.innerText = profile.username;
+      div.onclick = () => loadProfile(profile.id);
+      results.appendChild(div);
+    });
+  }
+};
+
+window.uploadVideo = async function() {
+  const file = document.getElementById('uploadVideo').files[0];
+  if (!file) return;
+  const path = `uploads/${Date.now()}_${file.name}`;
+  let { data, error } = await supabase.storage.from('videos').upload(path, file);
+  if (error) {
+    alert('Upload failed.');
+  } else {
+    document.getElementById('uploadProgress').innerText = 'Upload complete!';
+    loadFeed();
+  }
+};
+
+window.loadFeed = async function() {
+  const { data } = await supabase.storage.from('videos').list('uploads');
+  const feedList = document.getElementById('feedList');
+  feedList.innerHTML = '';
+
+  if (data) {
+    data.forEach(file => {
+      const url = supabase.storage.from('videos').getPublicUrl('uploads/' + file.name).data.publicUrl;
+      const vid = document.createElement('video');
+      vid.src = url;
+      vid.controls = false;
+      vid.muted = false;
+      vid.autoplay = true;
+      vid.loop = true;
+      vid.volume = 1.0;
+      vid.style.objectFit = 'cover';
+      feedList.appendChild(vid);
+    });
+  }
+  setupSnapScroll();
+};
+
+function setupSnapScroll() {
+  const feed = document.getElementById('feedList');
+  feed.addEventListener('scroll', () => {
+    const videos = feed.querySelectorAll('video');
+    let closest = null;
+    let closestDistance = Infinity;
+    videos.forEach(video => {
+      const rect = video.getBoundingClientRect();
+      const distance = Math.abs(rect.top);
+      if (distance < closestDistance) {
+        closest = video;
+        closestDistance = distance;
+      }
+    });
+    videos.forEach(video => {
+      if (video === closest) {
+        video.play();
+        video.muted = false;
+        video.volume = 1.0;
+      } else {
+        video.pause();
+      }
+    });
+  });
+}
+
+window.followUser = async function() {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user || !viewingUserId) return;
+
+  const { data: existingFollow } = await supabase.from('follows')
+    .select()
+    .eq('follower_id', user.id)
+    .eq('following_id', viewingUserId)
+    .maybeSingle();
+
+  if (existingFollow) {
+    await supabase.from('follows').delete().match({ follower_id: user.id, following_id: viewingUserId });
+  } else {
+    await supabase.from('follows').insert([{ follower_id: user.id, following_id: viewingUserId }]);
+  }
+  loadProfile(viewingUserId);
+};
+
+window.showLogin(); // Start at login screen by default
+
+</script>
+</body>
+</html>
