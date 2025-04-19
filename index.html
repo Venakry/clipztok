@@ -2,15 +2,15 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Clipz 3.0</title>
+  <title>Clipz 3.5</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    body { margin: 0; padding: 0; background: #000; color: #fff; font-family: Arial, sans-serif; overflow: hidden; }
+    body { margin: 0; background: #000; color: #fff; font-family: Arial, sans-serif; overflow: hidden; }
     .section { display: none; flex-direction: column; align-items: center; justify-content: center; height: 100vh; }
     .btn { margin: 10px; padding: 10px 20px; background: #444; color: white; border: none; cursor: pointer; border-radius: 10px; }
     .feed { height: 100vh; overflow-y: scroll; scroll-snap-type: y mandatory; }
     .feed video { width: 100%; height: 100vh; object-fit: cover; scroll-snap-align: start; }
-    .profile-pic { width: 120px; height: 120px; border-radius: 50%; margin: 10px; object-fit: cover; border: 2px solid white; }
+    .profile-pic { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; margin: 10px; border: 2px solid white; }
     .bottom-nav { position: fixed; bottom: 0; width: 100%; background: #111; display: flex; justify-content: space-around; padding: 10px; }
     .uploads { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-top: 10px; }
     .uploads video { width: 100%; height: auto; }
@@ -163,8 +163,8 @@ async function uploadVideo() {
   const path = `uploads/${Date.now()}_${file.name}`;
   await supabase.storage.from('videos').upload(path, file);
   document.getElementById('uploadProgress').innerText = "Uploaded!";
-  loadFeed();
   loadProfile();
+  loadFeed();
 }
 
 async function loadFeed() {
@@ -183,20 +183,6 @@ async function loadFeed() {
       vid.loop = true;
       vid.volume = 1.0;
       feedList.appendChild(vid);
-
-      // Like button
-      const likeBtn = document.createElement('button');
-      likeBtn.className = 'like-btn';
-      likeBtn.innerText = '❤️ Like';
-      likeBtn.onclick = () => alert('Liked (future feature)');
-      feedList.appendChild(likeBtn);
-
-      // Comment button
-      const commentBtn = document.createElement('button');
-      commentBtn.className = 'comment-btn';
-      commentBtn.innerText = '💬 Comment';
-      commentBtn.onclick = () => alert('Comments soon!');
-      feedList.appendChild(commentBtn);
     });
   }
   setupSnapScroll();
@@ -227,7 +213,6 @@ async function loadProfile(userId) {
       vid.controls = true;
       uploadsList.appendChild(vid);
 
-      // Delete button
       const delBtn = document.createElement('button');
       delBtn.className = 'delete-btn';
       delBtn.innerText = '🗑️ Delete';
@@ -281,8 +266,9 @@ async function searchUsers() {
   }
 }
 
-showLogin(); // Default screen
+showLogin(); // Start at login
 
 </script>
+
 </body>
 </html>
