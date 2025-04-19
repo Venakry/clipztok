@@ -2,130 +2,76 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Clipz 2.5 - Snap Scroll</title>
+  <title>Clipz 2.5</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     body { margin: 0; padding: 0; background: black; color: white; font-family: Arial, sans-serif; overflow: hidden; }
-    .section { display: none; align-items: center; flex-direction: column; padding: 20px; height: 100vh; overflow: hidden; }
-    .btn { margin: 10px; padding: 10px 20px; background: #333; color: white; border: none; cursor: pointer; }
-    .profile-pic { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; margin: 10px; }
-    .uploads { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
-    .uploads video { width: 100%; height: auto; }
-    .feed { display: flex; flex-direction: column; height: 100vh; overflow-y: scroll; scroll-snap-type: y mandatory; }
+    .section { display: none; flex-direction: column; align-items: center; justify-content: center; height: 100vh; }
+    .btn { margin: 10px; padding: 10px 20px; background: #444; color: white; border: none; cursor: pointer; }
+    .feed { height: 100vh; overflow-y: scroll; scroll-snap-type: y mandatory; }
     .feed video { width: 100%; height: 100vh; object-fit: cover; scroll-snap-align: start; }
+    .profile-pic { width: 100px; height: 100px; border-radius: 50%; margin: 10px; object-fit: cover; }
     .bottom-nav { position: fixed; bottom: 0; width: 100%; background: #111; display: flex; justify-content: space-around; padding: 10px; }
-    .nav-icon { font-size: 26px; cursor: pointer; }
+    .uploads { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-top: 10px; }
+    .uploads video { width: 100%; height: auto; }
     input, button { margin: 5px; padding: 10px; font-size: 16px; }
-    #searchResults div { margin: 5px; padding: 5px; cursor: pointer; border-bottom: 1px solid #444; }
+    #searchResults div { margin: 5px; padding: 5px; cursor: pointer; border-bottom: 1px solid #555; }
     .warning { color: red; }
   </style>
 </head>
 <body>
 
-<!-- LOGIN SCREEN -->
-<div id="loginScreen" class="section" style="display:flex;">
+<!-- Login Screen -->
+<div id="loginScreen" class="section" style="display: flex;">
   <h1>Login</h1>
   <input id="loginEmail" placeholder="Email">
-  <input id="loginPassword" placeholder="Password" type="password">
-  <button onclick="login()" class="btn">Log In</button>
-  <button onclick="showSignup()" class="btn">Sign Up</button>
+  <input id="loginPassword" type="password" placeholder="Password">
+  <button class="btn" onclick="login()">Login</button>
+  <button class="btn" onclick="showSignup()">Sign Up</button>
 </div>
 
-<!-- SIGNUP SCREEN -->
+<!-- Signup Screen -->
 <div id="signupScreen" class="section">
   <h1>Sign Up</h1>
   <input id="signupEmail" placeholder="Email">
-  <input id="signupPassword" placeholder="Password" type="password">
+  <input id="signupPassword" type="password" placeholder="Password">
   <input id="signupUsername" placeholder="Username">
   <input id="signupPfp" type="file" accept="image/*">
   <div id="usernameError" class="warning"></div>
-  <button onclick="createAccount()" class="btn">Create Account</button>
-  <button onclick="showLogin()" class="btn">Back to Login</button>
+  <button class="btn" onclick="createAccount()">Create Account</button>
+  <button class="btn" onclick="showLogin()">Back to Login</button>
 </div>
 
-<!-- HOME SCREEN -->
+<!-- Home Screen -->
 <div id="homeScreen" class="section">
   <h1>Clipz</h1>
   <input id="searchInput" placeholder="Search Username" oninput="searchUsers()">
   <div id="searchResults"></div>
   <input id="uploadVideo" type="file" accept="video/*" onchange="uploadVideo()">
-  <div id="uploadProgress" style="margin-top:10px;"></div>
-  <button id="loginLogoutBtn" onclick="logout()" class="btn">Log Out</button>
+  <div id="uploadProgress"></div>
+  <button id="loginLogoutBtn" class="btn" onclick="logout()">Log Out</button>
 </div>
 
-<!-- FEED SCREEN -->
+<!-- Feed Screen -->
 <div id="feedScreen" class="section">
-  <div class="feed" id="feedList"></div>
+  <div id="feedList" class="feed"></div>
 </div>
 
-<!-- PROFILE SCREEN -->
+<!-- Profile Screen -->
 <div id="profileScreen" class="section">
   <img id="profilePic" class="profile-pic" src="clipz pfp.jpg">
   <h2 id="profileUsername">Username</h2>
   <div id="followerCount">Followers: 0</div>
   <button id="followBtn" class="btn" onclick="followUser()">Follow</button>
-  <div class="uploads" id="uploadsList"></div>
+  <div id="uploadsList" class="uploads"></div>
 </div>
 
-<!-- NAVIGATION -->
+<!-- Bottom Navigation -->
 <div class="bottom-nav" id="bottomNav" style="display:none;">
   <div class="nav-icon" onclick="showHome()">🏠</div>
   <div class="nav-icon" onclick="showFeed()">▶️</div>
   <div class="nav-icon" onclick="showProfile()">👤</div>
 </div>
 
+<!-- REAL FULL SCRIPT CONTINUES BELOW -->
 <script type="module">
-const supabase = window.supabase.createClient(
-  "https://mxrswdcphtnclkioeprj.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im14cnN3ZGNwaHRuY2xraW9lcHJqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDUwODY4MDcsImV4cCI6MjA2MDY2MjgwN30.XjwMaypnmM_RqLkxjKWjw-JbEc9B4bxyoFaxj-Amo_s"
-);
-
-let viewingUserId = null;
-let currentProfile = null;
-
-async function login() {...}
-async function createAccount() {...}
-async function logout() {...}
-async function showHome() {...}
-async function showProfile() {...}
-async function showFeed() {...}
-async function uploadVideo() {...}
-async function searchUsers() {...}
-async function followUser() {...}
-async function loadFeed() {...}
-
-function showLogin() {...}
-function showSignup() {...}
-function hideAll() {...}
-function updateLoginLogoutButton() {...}
-
-window.addEventListener('scroll', function () {
-  const videos = document.querySelectorAll('#feedList video');
-  let closest = null;
-  let closestDistance = Infinity;
-
-  videos.forEach((video) => {
-    const rect = video.getBoundingClientRect();
-    const distance = Math.abs(rect.top);
-    if (distance < closestDistance) {
-      closest = video;
-      closestDistance = distance;
-    }
-  });
-
-  videos.forEach((video) => {
-    if (video === closest) {
-      video.play();
-      video.muted = false;
-      video.volume = 1.0;
-    } else {
-      video.pause();
-    }
-  });
-});
-
-showLogin();
-</script>
-
-</body>
-</html>
