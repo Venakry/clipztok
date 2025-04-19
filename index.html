@@ -47,6 +47,8 @@
   <h1>Clipz</h1>
   <input id="searchInput" placeholder="Search Username" oninput="searchUsers()">
   <div id="searchResults"></div>
+  <input id="uploadVideo" type="file" accept="video/*" onchange="uploadVideo()">
+  <div id="uploadProgress" style="margin-top:10px;"></div>
   <button id="loginLogoutBtn" onclick="logout()" class="btn">Log Out</button>
 </div>
 
@@ -71,7 +73,6 @@
   <div class="nav-icon" onclick="showProfile()">👤</div>
 </div>
 
-<!-- SCRIPTS -->
 <script type="module">
 const supabase = window.supabase.createClient(
   "https://mxrswdcphtnclkioeprj.supabase.co",
@@ -207,14 +208,32 @@ window.loadFeed = async function() {
       const vid = document.createElement('video');
       vid.src = url;
       vid.controls = true;
-      vid.muted = true;
+      vid.autoplay = true;
+      vid.muted = false;
+      vid.volume = 1.0;
       vid.loop = true;
       feedList.appendChild(vid);
     });
   }
 }
 
-// Show Login screen when page loads
+window.uploadVideo = async function() {
+  const file = document.getElementById('uploadVideo').files[0];
+  if (!file) return;
+
+  const filePath = `uploads/${Date.now()}_${file.name}`;
+  const { data, error } = await supabase.storage.from('videos').upload(filePath, file, {
+    cacheControl: '3600',
+    upsert: false
+  });
+
+  if (error) {
+    alert('Upload failed.');
+  } else {
+    document.getElementById('uploadProgress').innerText = 'Upload complete!';
+  }
+}
+
 window.showLogin();
 </script>
 
