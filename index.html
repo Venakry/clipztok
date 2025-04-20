@@ -5,8 +5,8 @@
   <title>Clipz 4.7+</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    body { margin: 0; background: black; color: white; font-family: Arial; overflow: hidden; }
-    .section { display: none; flex-direction: column; align-items: center; justify-content: start; height: 100vh; overflow-y: auto; }
+    body { margin: 0; background: black; color: white; font-family: Arial; }
+    .section { display: none; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow-y: auto; padding-bottom: 100px; }
     .btn { margin: 5px; padding: 10px 20px; background: #444; color: white; border: none; border-radius: 10px; cursor: pointer; }
     .feed { height: 100vh; overflow-y: scroll; scroll-snap-type: y mandatory; }
     .feed video { width: 100%; height: 100vh; object-fit: cover; scroll-snap-align: start; }
@@ -27,8 +27,8 @@
   <h1>Login</h1>
   <input id="loginEmail" placeholder="Email">
   <input id="loginPassword" type="password" placeholder="Password">
-  <button class="btn" onclick="login()">Login</button>
-  <button class="btn" onclick="showSignup()">Sign Up</button>
+  <button class="btn" onclick="window.login()">Login</button>
+  <button class="btn" onclick="window.showSignup()">Sign Up</button>
 </div>
 
 <!-- SIGNUP -->
@@ -39,16 +39,16 @@
   <input id="signupUsername" placeholder="Username">
   <input id="signupPfp" type="file" accept="image/*">
   <div id="usernameError" class="warning"></div>
-  <button class="btn" onclick="createAccount()">Create Account</button>
-  <button class="btn" onclick="showLogin()">Back to Login</button>
+  <button class="btn" onclick="window.createAccount()">Create Account</button>
+  <button class="btn" onclick="window.showLogin()">Back to Login</button>
 </div>
 
 <!-- HOME -->
 <div id="homeScreen" class="section">
   <h1>Clipz</h1>
-  <input id="searchInput" placeholder="Search Username" oninput="searchUsers()">
+  <input id="searchInput" placeholder="Search Username" oninput="window.searchUsers()">
   <div id="searchResults"></div>
-  <button id="loginLogoutBtn" class="btn" onclick="logout()">Log Out</button>
+  <button id="loginLogoutBtn" class="btn" onclick="window.logout()">Log Out</button>
 </div>
 
 <!-- FEED -->
@@ -61,37 +61,35 @@
   <img id="profilePic" class="profile-pic" src="clipz pfp.jpg">
   <h2 id="profileUsername">Username</h2>
   <div id="followerCount">Followers: 0</div>
-  <input id="uploadVideo" type="file" accept="video/*" onchange="uploadVideo()">
+  <input id="uploadVideo" type="file" accept="video/*" onchange="window.uploadVideo()">
   <div id="uploadProgress"></div>
   <div id="uploadsList" class="uploads"></div>
-  <button class="btn" style="background:#a00;" onclick="deleteAccount()">Delete Account</button>
 </div>
 
 <!-- NAV -->
 <div class="bottom-nav" id="bottomNav" style="display:none;">
-  <div class="nav-icon" onclick="showHome()">🏠</div>
-  <div class="nav-icon" onclick="showFeed()">▶️</div>
-  <div class="nav-icon" onclick="showProfile()">👤</div>
+  <div class="nav-icon" onclick="window.showHome()">🏠</div>
+  <div class="nav-icon" onclick="window.showFeed()">▶️</div>
+  <div class="nav-icon" onclick="window.showProfile()">👤</div>
 </div>
 
 <script type="module">
-
 const supabase = window.supabase.createClient(
   "https://mxrswdcphtnclkioeprj.supabase.co",
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im14cnN3ZGNwaHRuY2xraW9lcHJqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDUwODY4MDcsImV4cCI6MjA2MDY2MjgwN30.XjwMaypnmM_RqLkxjKWjw-JbEc9B4bxyoFaxj-Amo_s"
 );
 
-function hideAll() {
+window.hideAll = function() {
   document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
   document.getElementById('bottomNav').style.display = 'none';
-}
+};
 
 window.login = async function() {
   const email = document.getElementById('loginEmail').value;
   const password = document.getElementById('loginPassword').value;
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) alert(error.message);
-  else showHome();
+  else window.showHome();
 };
 
 window.createAccount = async function() {
@@ -100,64 +98,60 @@ window.createAccount = async function() {
   const username = document.getElementById('signupUsername').value;
   const pfpFile = document.getElementById('signupPfp').files[0];
 
-  const { data: signupData, error: signupError } = await supabase.auth.signUp({
-    email,
-    password,
-  });
-
-  if (signupError) {
-    alert(signupError.message);
+  const { data: existing } = await supabase.from('profiles').select().eq('username', username).maybeSingle();
+  if (existing) {
+    document.getElementById('usernameError').innerText = "Username is already taken.";
     return;
   }
 
-  const userId = signupData.user.id;
-  let pfpUrl = 'clipz pfp.jpg';
-
-  if (pfpFile) {
-    const filePath = `pfps/${userId}/${pfpFile.name}`;
-    const { error: uploadError } = await supabase.storage.from('pfps').upload(filePath, pfpFile);
-    if (!uploadError) {
-      const { data: publicUrlData } = supabase.storage.from('pfps').getPublicUrl(filePath);
-      pfpUrl = publicUrlData.publicUrl;
-    }
+  const { data: signup, error } = await supabase.auth.signUp({ email, password });
+  if (error) {
+    alert(error.message);
+    return;
   }
 
-  await supabase.from('profiles').insert([{ id: userId, username: username, pfp_url: pfpUrl, followers: 0 }]);
-  showLogin();
+  let pfpUrl = 'clipz pfp.jpg';
+  if (pfpFile) {
+    const { data: uploadData } = await supabase.storage.from('pfps').upload(`pfps/${Date.now()}_${pfpFile.name}`, pfpFile);
+    pfpUrl = supabase.storage.from('pfps').getPublicUrl(uploadData.path).data.publicUrl;
+  }
+
+  await supabase.from('profiles').insert([{ id: signup.user.id, username, pfp_url: pfpUrl, followers: 0 }]);
+  window.showLogin();
 };
 
 window.logout = async function() {
   await supabase.auth.signOut();
-  showLogin();
+  window.showLogin();
 };
 
 window.showHome = function() {
-  hideAll();
+  window.hideAll();
   document.getElementById('homeScreen').style.display = 'flex';
   document.getElementById('bottomNav').style.display = 'flex';
 };
 
 window.showSignup = function() {
-  hideAll();
+  window.hideAll();
   document.getElementById('signupScreen').style.display = 'flex';
 };
 
 window.showLogin = function() {
-  hideAll();
+  window.hideAll();
   document.getElementById('loginScreen').style.display = 'flex';
 };
 
 window.showFeed = function() {
-  hideAll();
+  window.hideAll();
   document.getElementById('feedScreen').style.display = 'flex';
   document.getElementById('bottomNav').style.display = 'flex';
-  loadFeed();
+  window.loadFeed();
 };
 
 window.showProfile = async function() {
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return showLogin();
-  loadProfile(user.id);
+  if (!user) return window.showLogin();
+  window.loadProfile(user.id);
 };
 
 window.uploadVideo = async function() {
@@ -165,33 +159,37 @@ window.uploadVideo = async function() {
   if (!file) return;
   const path = `uploads/${Date.now()}_${file.name}`;
   await supabase.storage.from('videos').upload(path, file);
+
+  const { data: { user } } = await supabase.auth.getUser();
+  const publicUrl = supabase.storage.from('videos').getPublicUrl(path).data.publicUrl;
+  await supabase.from('videos').insert([{ user_id: user.id, video_url: publicUrl }]);
+
   document.getElementById('uploadProgress').innerText = "Uploaded!";
-  loadFeed();
-  loadProfile();
+  window.loadProfile(user.id);
 };
 
 window.loadFeed = async function() {
-  const { data } = await supabase.storage.from('videos').list('uploads');
+  const { data } = await supabase.from('videos').select('*');
   const feedList = document.getElementById('feedList');
   feedList.innerHTML = '';
 
   if (data) {
     data.forEach(file => {
-      const url = supabase.storage.from('videos').getPublicUrl('uploads/' + file.name).data.publicUrl;
       const vid = document.createElement('video');
-      vid.src = url;
+      vid.src = file.video_url;
       vid.controls = false;
-      vid.muted = true;
+      vid.muted = false;
       vid.autoplay = false;
       vid.loop = true;
+      vid.volume = 1.0;
       feedList.appendChild(vid);
     });
-    setupSnapScroll();
+    window.setupSnapScroll();
   }
 };
 
 window.loadProfile = async function(userId) {
-  hideAll();
+  window.hideAll();
   document.getElementById('profileScreen').style.display = 'flex';
   document.getElementById('bottomNav').style.display = 'flex';
 
@@ -201,15 +199,14 @@ window.loadProfile = async function(userId) {
     document.getElementById('profilePic').src = profile.pfp_url || 'clipz pfp.jpg';
   }
 
-  const { data: uploads } = await supabase.storage.from('videos').list('uploads');
+  const { data: uploads } = await supabase.from('videos').select('*').eq('user_id', userId);
   const uploadsList = document.getElementById('uploadsList');
   uploadsList.innerHTML = '';
 
   if (uploads) {
     uploads.forEach(file => {
-      const url = supabase.storage.from('videos').getPublicUrl('uploads/' + file.name).data.publicUrl;
       const vid = document.createElement('video');
-      vid.src = url;
+      vid.src = file.video_url;
       vid.controls = true;
       uploadsList.appendChild(vid);
     });
@@ -226,7 +223,7 @@ window.searchUsers = async function() {
     data.forEach(profile => {
       const div = document.createElement('div');
       div.innerText = profile.username;
-      div.onclick = () => loadProfile(profile.id);
+      div.onclick = () => window.loadProfile(profile.id);
       results.appendChild(div);
     });
   }
@@ -249,8 +246,6 @@ window.setupSnapScroll = function() {
     videos.forEach(video => {
       if (video === closest) {
         video.play();
-        video.muted = false;
-        video.volume = 1.0;
       } else {
         video.pause();
       }
@@ -258,15 +253,8 @@ window.setupSnapScroll = function() {
   });
 };
 
-window.deleteAccount = async function() {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return;
-  await supabase.auth.admin.deleteUser(user.id);
-  window.showLogin();
-};
-
-showLogin();
-
+window.showLogin();
 </script>
+
 </body>
 </html>
