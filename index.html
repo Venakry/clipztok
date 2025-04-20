@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Clipz 4.1+</title>
+  <title>Clipz 4.2+</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     body { margin: 0; background: black; color: white; font-family: Arial, sans-serif; overflow: hidden; }
@@ -134,7 +134,7 @@ window.createAccount = async function() {
   const username = document.getElementById('signupUsername').value;
   const pfpFile = document.getElementById('signupPfp').files[0];
 
-  const { data: existing } = await supabase.from('profiles').select().eq('username', username).maybeSingle();
+  const { data: existing } = await supabase.from('profiles').select('*', { head: false }).eq('username', username).maybeSingle();
   if (existing) {
     document.getElementById('usernameError').innerText = "Sorry, that username is taken.";
     return;
@@ -215,7 +215,7 @@ window.loadProfile = async function(userId) {
   document.getElementById('profileScreen').style.display = 'flex';
   document.getElementById('bottomNav').style.display = 'flex';
 
-  const { data: profile } = await supabase.from('profiles').select().eq('id', userId).single();
+  const { data: profile } = await supabase.from('profiles').select('*', { head: false }).eq('id', userId).single();
   if (profile) {
     document.getElementById('profileUsername').innerText = profile.username;
     document.getElementById('profilePic').src = profile.pfp_url || 'clipz pfp.jpg';
@@ -249,7 +249,7 @@ window.loadProfile = async function(userId) {
 
 window.searchUsers = async function() {
   const query = document.getElementById('searchInput').value.toLowerCase();
-  const { data } = await supabase.from('profiles').select().ilike('username', `%${query}%`);
+  const { data } = await supabase.from('profiles').select('*', { head: false }).ilike('username', `%${query}%`);
   const results = document.getElementById('searchResults');
   results.innerHTML = '';
 
