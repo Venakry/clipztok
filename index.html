@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Clipz 4.5</title>
+  <title>Clipz 4.4</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     body { margin: 0; background: black; color: white; font-family: Arial; overflow: hidden; }
@@ -27,8 +27,8 @@
   <h1>Login</h1>
   <input id="loginEmail" placeholder="Email">
   <input id="loginPassword" type="password" placeholder="Password">
-  <button class="btn" onclick="login()">Login</button>
-  <button class="btn" onclick="showSignup()">Sign Up</button>
+  <button class="btn" onclick="window.login()">Login</button>
+  <button class="btn" onclick="window.showSignup()">Sign Up</button>
 </div>
 
 <!-- SIGNUP -->
@@ -39,16 +39,16 @@
   <input id="signupUsername" placeholder="Username">
   <input id="signupPfp" type="file" accept="image/*">
   <div id="usernameError" class="warning"></div>
-  <button class="btn" onclick="createAccount()">Create Account</button>
-  <button class="btn" onclick="showLogin()">Back to Login</button>
+  <button class="btn" onclick="window.createAccount()">Create Account</button>
+  <button class="btn" onclick="window.showLogin()">Back to Login</button>
 </div>
 
 <!-- HOME -->
 <div id="homeScreen" class="section">
   <h1>Clipz</h1>
-  <input id="searchInput" placeholder="Search Username" oninput="searchUsers()">
+  <input id="searchInput" placeholder="Search Username" oninput="window.searchUsers()">
   <div id="searchResults"></div>
-  <button id="loginLogoutBtn" class="btn" onclick="logout()">Log Out</button>
+  <button id="loginLogoutBtn" class="btn" onclick="window.logout()">Log Out</button>
 </div>
 
 <!-- FEED -->
@@ -61,39 +61,38 @@
   <img id="profilePic" class="profile-pic" src="clipz pfp.jpg">
   <h2 id="profileUsername">Username</h2>
   <div id="followerCount">Followers: 0</div>
-  <input id="uploadVideo" type="file" accept="video/*" onchange="uploadVideo()">
+  <input id="uploadVideo" type="file" accept="video/*" onchange="window.uploadVideo()">
   <div id="uploadProgress"></div>
   <div id="uploadsList" class="uploads"></div>
 </div>
 
 <!-- NAV -->
 <div class="bottom-nav" id="bottomNav" style="display:none;">
-  <div class="nav-icon" onclick="showHome()">🏠</div>
-  <div class="nav-icon" onclick="showFeed()">▶️</div>
-  <div class="nav-icon" onclick="showProfile()">👤</div>
+  <div class="nav-icon" onclick="window.showHome()">🏠</div>
+  <div class="nav-icon" onclick="window.showFeed()">▶️</div>
+  <div class="nav-icon" onclick="window.showProfile()">👤</div>
 </div>
 
 <script type="module">
-
 const supabase = window.supabase.createClient(
   "https://mxrswdcphtnclkioeprj.supabase.co",
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im14cnN3ZGNwaHRuY2xraW9lcHJqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDUwODY4MDcsImV4cCI6MjA2MDY2MjgwN30.XjwMaypnmM_RqLkxjKWjw-JbEc9B4bxyoFaxj-Amo_s"
 );
 
-function hideAll() {
+window.hideAll = function() {
   document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
   document.getElementById('bottomNav').style.display = 'none';
-}
+};
 
-async function login() {
+window.login = async function() {
   const email = document.getElementById('loginEmail').value;
   const password = document.getElementById('loginPassword').value;
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) alert(error.message);
-  else showHome();
-}
+  else window.showHome();
+};
 
-async function createAccount() {
+window.createAccount = async function() {
   const email = document.getElementById('signupEmail').value;
   const password = document.getElementById('signupPassword').value;
   const username = document.getElementById('signupUsername').value;
@@ -105,68 +104,64 @@ async function createAccount() {
     return;
   }
 
-  const { error: signupError } = await supabase.auth.signUp({ email, password });
-  if (signupError) { alert(signupError.message); return; }
-
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) { alert('Signup error. Try login manually.'); return; }
+  const { data: signup, error } = await supabase.auth.signUp({ email, password });
+  if (error) { alert(error.message); return; }
 
   let pfpUrl = 'clipz pfp.jpg';
   if (pfpFile) {
-    const { data: uploadData } = await supabase.storage.from('pfps').upload(`pfps/${Date.now()}_${pfpFile.name}`, pfpFile);
-    if (uploadData) {
-      pfpUrl = supabase.storage.from('pfps').getPublicUrl(uploadData.path).data.publicUrl;
-    }
+    const { data: uploaded } = await supabase.storage.from('pfps').upload(`pfps/${Date.now()}_${pfpFile.name}`, pfpFile);
+    pfpUrl = supabase.storage.from('pfps').getPublicUrl(uploaded.path).data.publicUrl;
   }
 
-  await supabase.from('profiles').insert([{ id: user.id, username, pfp_url: pfpUrl, followers: 0 }]);
-  showLogin();
-}
+  await supabase.from('profiles').insert([{ id: signup.user.id, username, pfp_url: pfpUrl, followers: 0 }]);
+  window.showLogin();
+};
 
-async function logout() {
+window.logout = async function() {
   await supabase.auth.signOut();
-  showLogin();
-}
+  window.showLogin();
+};
 
-function showHome() {
-  hideAll();
+window.showHome = function() {
+  window.hideAll();
   document.getElementById('homeScreen').style.display = 'flex';
   document.getElementById('bottomNav').style.display = 'flex';
-}
+};
 
-function showSignup() {
-  hideAll();
+window.showSignup = function() {
+  window.hideAll();
   document.getElementById('signupScreen').style.display = 'flex';
-}
+};
 
-function showLogin() {
-  hideAll();
+window.showLogin = function() {
+  window.hideAll();
   document.getElementById('loginScreen').style.display = 'flex';
-}
+};
 
-function showFeed() {
-  hideAll();
+window.showFeed = function() {
+  window.hideAll();
   document.getElementById('feedScreen').style.display = 'flex';
   document.getElementById('bottomNav').style.display = 'flex';
-  loadFeed();
-}
+  window.loadFeed();
+};
 
-async function showProfile() {
+window.showProfile = async function() {
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return showLogin();
-  loadProfile(user.id);
-}
+  if (!user) return window.showLogin();
+  window.loadProfile(user.id);
+};
 
-async function uploadVideo() {
+window.uploadVideo = async function() {
   const file = document.getElementById('uploadVideo').files[0];
   if (!file) return;
   const path = `uploads/${Date.now()}_${file.name}`;
   await supabase.storage.from('videos').upload(path, file);
   document.getElementById('uploadProgress').innerText = "Uploaded!";
-  loadProfile();
-}
+  window.loadFeed();
+  window.loadProfile();
+};
 
-async function loadFeed() {
+window.loadFeed = async function() {
   const { data } = await supabase.storage.from('videos').list('uploads');
   const feedList = document.getElementById('feedList');
   feedList.innerHTML = '';
@@ -177,18 +172,18 @@ async function loadFeed() {
       const vid = document.createElement('video');
       vid.src = url;
       vid.controls = false;
-      vid.muted = true;
+      vid.muted = false;
       vid.autoplay = false;
       vid.loop = true;
       vid.volume = 1.0;
       feedList.appendChild(vid);
     });
-    setupSnapScroll();
+    window.setupSnapScroll();
   }
-}
+};
 
-async function loadProfile(userId) {
-  hideAll();
+window.loadProfile = async function(userId) {
+  window.hideAll();
   document.getElementById('profileScreen').style.display = 'flex';
   document.getElementById('bottomNav').style.display = 'flex';
 
@@ -211,9 +206,9 @@ async function loadProfile(userId) {
       uploadsList.appendChild(vid);
     });
   }
-}
+};
 
-async function searchUsers() {
+window.searchUsers = async function() {
   const query = document.getElementById('searchInput').value;
   const { data } = await supabase.from('profiles').select('*').ilike('username', `%${query}%`);
   const results = document.getElementById('searchResults');
@@ -223,13 +218,13 @@ async function searchUsers() {
     data.forEach(profile => {
       const div = document.createElement('div');
       div.innerText = profile.username;
-      div.onclick = () => loadProfile(profile.id);
+      div.onclick = () => window.loadProfile(profile.id);
       results.appendChild(div);
     });
   }
-}
+};
 
-function setupSnapScroll() {
+window.setupSnapScroll = function() {
   const feed = document.getElementById('feedList');
   feed.addEventListener('scroll', () => {
     const videos = feed.querySelectorAll('video');
@@ -246,15 +241,14 @@ function setupSnapScroll() {
     videos.forEach(video => {
       if (video === closest) {
         video.play();
-        video.muted = false;
       } else {
         video.pause();
       }
     });
   });
-}
+};
 
-showLogin();
+window.showLogin();
 </script>
 
 </body>
