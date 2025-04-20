@@ -5,9 +5,9 @@
   <title>Clipz 3.5+</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    body { margin: 0; background: #000; color: #fff; font-family: Arial, sans-serif; overflow: hidden; }
+    body { margin: 0; background: black; color: white; font-family: Arial, sans-serif; overflow: hidden; }
     .section { display: none; flex-direction: column; align-items: center; justify-content: center; height: 100vh; }
-    .btn { margin: 10px; padding: 10px 20px; background: #444; color: white; border: none; cursor: pointer; border-radius: 10px; }
+    .btn { margin: 10px; padding: 10px 20px; background: #444; color: white; border: none; border-radius: 10px; cursor: pointer; }
     .feed { height: 100vh; overflow-y: scroll; scroll-snap-type: y mandatory; }
     .feed video { width: 100%; height: 100vh; object-fit: cover; scroll-snap-align: start; }
     .profile-pic { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; margin: 10px; border: 2px solid white; }
@@ -20,10 +20,9 @@
     .warning { color: red; }
   </style>
 </head>
-
 <body>
 
-<!-- Login -->
+<!-- LOGIN -->
 <div id="loginScreen" class="section" style="display: flex;">
   <h1>Login</h1>
   <input id="loginEmail" placeholder="Email">
@@ -32,7 +31,7 @@
   <button class="btn" onclick="showSignup()">Sign Up</button>
 </div>
 
-<!-- Signup -->
+<!-- SIGNUP -->
 <div id="signupScreen" class="section">
   <h1>Sign Up</h1>
   <input id="signupEmail" placeholder="Email">
@@ -44,7 +43,7 @@
   <button class="btn" onclick="showLogin()">Back to Login</button>
 </div>
 
-<!-- Home -->
+<!-- HOME -->
 <div id="homeScreen" class="section">
   <h1>Clipz</h1>
   <input id="searchInput" placeholder="Search Username" oninput="searchUsers()">
@@ -52,12 +51,12 @@
   <button id="loginLogoutBtn" class="btn" onclick="logout()">Log Out</button>
 </div>
 
-<!-- Feed -->
+<!-- FEED -->
 <div id="feedScreen" class="section">
   <div id="feedList" class="feed"></div>
 </div>
 
-<!-- Profile -->
+<!-- PROFILE -->
 <div id="profileScreen" class="section">
   <img id="profilePic" class="profile-pic" src="clipz pfp.jpg">
   <h2 id="profileUsername">Username</h2>
@@ -67,7 +66,7 @@
   <div id="uploadsList" class="uploads"></div>
 </div>
 
-<!-- Bottom Nav -->
+<!-- NAVIGATION -->
 <div class="bottom-nav" id="bottomNav" style="display:none;">
   <div class="nav-icon" onclick="showHome()">🏠</div>
   <div class="nav-icon" onclick="showFeed()">▶️</div>
@@ -89,7 +88,7 @@ function hideAll() {
 async function login() {
   const email = document.getElementById('loginEmail').value;
   const password = document.getElementById('loginPassword').value;
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) alert(error.message);
   else showHome();
 }
@@ -106,8 +105,13 @@ async function createAccount() {
     return;
   }
 
-  const { data: signup, error } = await supabase.auth.signUp({ email, password });
+  const { data, error } = await supabase.auth.signUp({ email, password });
   if (error) { alert(error.message); return; }
+
+  if (!data.user) {
+    alert('Check your email to confirm your account.');
+    return;
+  }
 
   let pfpUrl = 'clipz pfp.jpg';
   if (pfpFile) {
@@ -115,7 +119,7 @@ async function createAccount() {
     pfpUrl = supabase.storage.from('pfps').getPublicUrl(uploaded.path).data.publicUrl;
   }
 
-  await supabase.from('profiles').insert([{ id: signup.user.id, username, pfp_url: pfpUrl, followers: 0 }]);
+  await supabase.from('profiles').insert([{ id: data.user.id, username, pfp_url: pfpUrl, followers: 0 }]);
   showLogin();
 }
 
