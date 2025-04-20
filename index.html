@@ -2,19 +2,17 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Clipz 4.6.2+</title>
+  <title>Clipz 4.7+</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     body { margin: 0; background: black; color: white; font-family: Arial; overflow: hidden; }
-    .section { display: none; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
+    .section { display: none; flex-direction: column; align-items: center; justify-content: start; height: 100vh; overflow-y: auto; }
     .btn { margin: 5px; padding: 10px 20px; background: #444; color: white; border: none; border-radius: 10px; cursor: pointer; }
     .feed { height: 100vh; overflow-y: scroll; scroll-snap-type: y mandatory; }
     .feed video { width: 100%; height: 100vh; object-fit: cover; scroll-snap-align: start; }
     .bottom-nav { position: fixed; bottom: 0; width: 100%; background: #111; display: flex; justify-content: space-around; padding: 10px; }
-    .profileHeader { padding: 20px; background: #111; width: 100%; text-align: center; }
     .profile-pic { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; margin: 10px; border: 2px solid white; }
-    .uploadsContainer { flex: 1; overflow-y: auto; width: 100%; padding: 10px; }
-    .uploads { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+    .uploads { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-top: 10px; }
     .uploads video { width: 100%; height: auto; }
     input, button { margin: 5px; padding: 10px; font-size: 16px; border-radius: 8px; }
     #searchResults div { margin: 5px; padding: 5px; cursor: pointer; border-bottom: 1px solid #555; }
@@ -29,8 +27,8 @@
   <h1>Login</h1>
   <input id="loginEmail" placeholder="Email">
   <input id="loginPassword" type="password" placeholder="Password">
-  <button class="btn" onclick="window.login()">Login</button>
-  <button class="btn" onclick="window.showSignup()">Sign Up</button>
+  <button class="btn" onclick="login()">Login</button>
+  <button class="btn" onclick="showSignup()">Sign Up</button>
 </div>
 
 <!-- SIGNUP -->
@@ -41,16 +39,16 @@
   <input id="signupUsername" placeholder="Username">
   <input id="signupPfp" type="file" accept="image/*">
   <div id="usernameError" class="warning"></div>
-  <button class="btn" onclick="window.createAccount()">Create Account</button>
-  <button class="btn" onclick="window.showLogin()">Back to Login</button>
+  <button class="btn" onclick="createAccount()">Create Account</button>
+  <button class="btn" onclick="showLogin()">Back to Login</button>
 </div>
 
 <!-- HOME -->
 <div id="homeScreen" class="section">
   <h1>Clipz</h1>
-  <input id="searchInput" placeholder="Search Username" oninput="window.searchUsers()">
+  <input id="searchInput" placeholder="Search Username" oninput="searchUsers()">
   <div id="searchResults"></div>
-  <button id="loginLogoutBtn" class="btn" onclick="window.logout()">Log Out</button>
+  <button id="loginLogoutBtn" class="btn" onclick="logout()">Log Out</button>
 </div>
 
 <!-- FEED -->
@@ -59,24 +57,21 @@
 </div>
 
 <!-- PROFILE -->
-<div id="profileScreen" class="section" style="flex-direction: column; align-items: center; justify-content: flex-start;">
-  <div class="profileHeader">
-    <img id="profilePic" class="profile-pic" src="clipz pfp.jpg">
-    <h2 id="profileUsername">Username</h2>
-    <div id="followerCount">Followers: 0</div>
-    <input id="uploadVideo" type="file" accept="video/*" onchange="window.uploadVideo()">
-    <div id="uploadProgress"></div>
-  </div>
-  <div class="uploadsContainer">
-    <div id="uploadsList" class="uploads"></div>
-  </div>
+<div id="profileScreen" class="section">
+  <img id="profilePic" class="profile-pic" src="clipz pfp.jpg">
+  <h2 id="profileUsername">Username</h2>
+  <div id="followerCount">Followers: 0</div>
+  <input id="uploadVideo" type="file" accept="video/*" onchange="uploadVideo()">
+  <div id="uploadProgress"></div>
+  <div id="uploadsList" class="uploads"></div>
+  <button class="btn" style="background:#a00;" onclick="deleteAccount()">Delete Account</button>
 </div>
 
 <!-- NAV -->
 <div class="bottom-nav" id="bottomNav" style="display:none;">
-  <div class="nav-icon" onclick="window.showHome()">🏠</div>
-  <div class="nav-icon" onclick="window.showFeed()">▶️</div>
-  <div class="nav-icon" onclick="window.showProfile()">👤</div>
+  <div class="nav-icon" onclick="showHome()">🏠</div>
+  <div class="nav-icon" onclick="showFeed()">▶️</div>
+  <div class="nav-icon" onclick="showProfile()">👤</div>
 </div>
 
 <script type="module">
@@ -86,17 +81,17 @@ const supabase = window.supabase.createClient(
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im14cnN3ZGNwaHRuY2xraW9lcHJqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDUwODY4MDcsImV4cCI6MjA2MDY2MjgwN30.XjwMaypnmM_RqLkxjKWjw-JbEc9B4bxyoFaxj-Amo_s"
 );
 
-window.hideAll = function() {
+function hideAll() {
   document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
   document.getElementById('bottomNav').style.display = 'none';
-};
+}
 
 window.login = async function() {
   const email = document.getElementById('loginEmail').value;
   const password = document.getElementById('loginPassword').value;
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) alert(error.message);
-  else window.showHome();
+  else showHome();
 };
 
 window.createAccount = async function() {
@@ -105,61 +100,64 @@ window.createAccount = async function() {
   const username = document.getElementById('signupUsername').value;
   const pfpFile = document.getElementById('signupPfp').files[0];
 
-  const { data: existing } = await supabase.from('profiles').select().eq('username', username).maybeSingle();
-  if (existing) {
-    document.getElementById('usernameError').innerText = "Sorry, that username is taken.";
+  const { data: signupData, error: signupError } = await supabase.auth.signUp({
+    email,
+    password,
+  });
+
+  if (signupError) {
+    alert(signupError.message);
     return;
   }
 
-  const { data: signup, error } = await supabase.auth.signUp({ email, password });
-  if (error || !signup.user) { alert(error?.message || "Signup failed"); return; }
-
+  const userId = signupData.user.id;
   let pfpUrl = 'clipz pfp.jpg';
+
   if (pfpFile) {
-    const upload = await supabase.storage.from('pfps').upload(`pfps/${Date.now()}_${pfpFile.name}`, pfpFile);
-    if (!upload.error) {
-      pfpUrl = supabase.storage.from('pfps').getPublicUrl(upload.data.path).data.publicUrl;
+    const filePath = `pfps/${userId}/${pfpFile.name}`;
+    const { error: uploadError } = await supabase.storage.from('pfps').upload(filePath, pfpFile);
+    if (!uploadError) {
+      const { data: publicUrlData } = supabase.storage.from('pfps').getPublicUrl(filePath);
+      pfpUrl = publicUrlData.publicUrl;
     }
   }
 
-  setTimeout(async () => {
-    await supabase.from('profiles').insert([{ id: signup.user.id, username, pfp_url: pfpUrl, followers: 0 }]);
-    window.showLogin();
-  }, 500);
+  await supabase.from('profiles').insert([{ id: userId, username: username, pfp_url: pfpUrl, followers: 0 }]);
+  showLogin();
 };
 
 window.logout = async function() {
   await supabase.auth.signOut();
-  window.showLogin();
+  showLogin();
 };
 
 window.showHome = function() {
-  window.hideAll();
+  hideAll();
   document.getElementById('homeScreen').style.display = 'flex';
   document.getElementById('bottomNav').style.display = 'flex';
 };
 
 window.showSignup = function() {
-  window.hideAll();
+  hideAll();
   document.getElementById('signupScreen').style.display = 'flex';
 };
 
 window.showLogin = function() {
-  window.hideAll();
+  hideAll();
   document.getElementById('loginScreen').style.display = 'flex';
 };
 
 window.showFeed = function() {
-  window.hideAll();
+  hideAll();
   document.getElementById('feedScreen').style.display = 'flex';
   document.getElementById('bottomNav').style.display = 'flex';
-  window.loadFeed();
+  loadFeed();
 };
 
 window.showProfile = async function() {
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return window.showLogin();
-  window.loadProfile(user.id);
+  if (!user) return showLogin();
+  loadProfile(user.id);
 };
 
 window.uploadVideo = async function() {
@@ -168,8 +166,8 @@ window.uploadVideo = async function() {
   const path = `uploads/${Date.now()}_${file.name}`;
   await supabase.storage.from('videos').upload(path, file);
   document.getElementById('uploadProgress').innerText = "Uploaded!";
-  window.loadFeed();
-  window.loadProfile();
+  loadFeed();
+  loadProfile();
 };
 
 window.loadFeed = async function() {
@@ -186,15 +184,14 @@ window.loadFeed = async function() {
       vid.muted = true;
       vid.autoplay = false;
       vid.loop = true;
-      vid.volume = 1.0;
       feedList.appendChild(vid);
     });
-    window.setupSnapScroll();
+    setupSnapScroll();
   }
 };
 
 window.loadProfile = async function(userId) {
-  window.hideAll();
+  hideAll();
   document.getElementById('profileScreen').style.display = 'flex';
   document.getElementById('bottomNav').style.display = 'flex';
 
@@ -229,7 +226,7 @@ window.searchUsers = async function() {
     data.forEach(profile => {
       const div = document.createElement('div');
       div.innerText = profile.username;
-      div.onclick = () => window.loadProfile(profile.id);
+      div.onclick = () => loadProfile(profile.id);
       results.appendChild(div);
     });
   }
@@ -252,20 +249,23 @@ window.setupSnapScroll = function() {
     videos.forEach(video => {
       if (video === closest) {
         video.play();
+        video.muted = false;
+        video.volume = 1.0;
       } else {
         video.pause();
       }
     });
   });
-
-  document.addEventListener('visibilitychange', () => {
-    if (document.hidden) {
-      document.querySelectorAll('video').forEach(v => v.pause());
-    }
-  });
 };
 
-window.showLogin();
+window.deleteAccount = async function() {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+  await supabase.auth.admin.deleteUser(user.id);
+  window.showLogin();
+};
+
+showLogin();
 
 </script>
 </body>
