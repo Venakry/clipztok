@@ -2,14 +2,18 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Clipz 4.5+</title>
+  <title>Clipz 4.6+</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    body { margin: 0; background: black; color: white; font-family: Arial, sans-serif; overflow: hidden; }
+    body { margin: 0; background: black; color: white; font-family: Arial; overflow: hidden; }
     .section { display: none; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow-y: auto; }
     .btn { margin: 5px; padding: 10px 20px; background: #444; color: white; border: none; border-radius: 10px; cursor: pointer; }
     .feed { height: 100vh; overflow-y: scroll; scroll-snap-type: y mandatory; }
-    .feed video { width: 100%; height: 100vh; object-fit: cover; scroll-snap-align: start; }
+    .feedItem { width: 100%; height: 100vh; scroll-snap-align: start; position: relative; }
+    .feedItem video { width: 100%; height: 100vh; object-fit: cover; }
+    .like-btn, .comment-btn { position: absolute; right: 10px; background: #222; padding: 5px 10px; border-radius: 8px; border: none; cursor: pointer; color: white; font-size: 14px; }
+    .like-btn { top: 10px; }
+    .comment-btn { top: 50px; }
     .bottom-nav { position: fixed; bottom: 0; width: 100%; background: #111; display: flex; justify-content: space-around; padding: 10px; }
     .profile-pic { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; margin: 10px; border: 2px solid white; }
     .uploads { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-top: 10px; }
@@ -172,6 +176,9 @@ window.loadFeed = async function() {
   if (data) {
     data.forEach(file => {
       const url = supabase.storage.from('videos').getPublicUrl('uploads/' + file.name).data.publicUrl;
+      const item = document.createElement('div');
+      item.className = 'feedItem';
+
       const vid = document.createElement('video');
       vid.src = url;
       vid.controls = false;
@@ -179,7 +186,21 @@ window.loadFeed = async function() {
       vid.autoplay = false;
       vid.loop = true;
       vid.volume = 1.0;
-      feedList.appendChild(vid);
+
+      const likeBtn = document.createElement('button');
+      likeBtn.className = 'like-btn';
+      likeBtn.textContent = 'Like';
+      likeBtn.onclick = () => window.likeVideo(file.name);
+
+      const commentBtn = document.createElement('button');
+      commentBtn.className = 'comment-btn';
+      commentBtn.textContent = 'Comment';
+      commentBtn.onclick = () => window.commentVideo(file.name);
+
+      item.appendChild(vid);
+      item.appendChild(likeBtn);
+      item.appendChild(commentBtn);
+      feedList.appendChild(item);
     });
     window.setupSnapScroll();
   }
@@ -187,7 +208,9 @@ window.loadFeed = async function() {
 
 window.loadProfile = async function(userId) {
   window.hideAll();
-  document.getElementById('profileScreen').style.display = 'flex';
+  const screen = document.getElementById('profileScreen');
+  screen.style.display = 'flex';
+  screen.scrollTop = 0;
   document.getElementById('bottomNav').style.display = 'flex';
 
   const { data: profile } = await supabase.from('profiles').select('*').eq('id', userId).single();
@@ -227,14 +250,27 @@ window.searchUsers = async function() {
   }
 };
 
+window.likeVideo = async function(videoName) {
+  const { data: { user } } = await supabase.auth.getUser();
+  await supabase.from('likes').insert([{ video_path: videoName, user_id: user.id }]);
+  alert('Liked!');
+};
+
+window.commentVideo = async function(videoName) {
+  const comment = prompt('Type your comment:');
+  if (!comment) return;
+  const { data: { user } } = await supabase.auth.getUser();
+  await supabase.from('comments').insert([{ video_path: videoName, user_id: user.id, content: comment }]);
+  alert('Commented!');
+};
+
 window.deleteAccount = async function() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return;
-
-  if (confirm("Are you sure you want to DELETE your account forever?")) {
-    await supabase.auth.admin.deleteUser(user.id);
+  if (confirm("Delete your account? This can't be undone.")) {
     await supabase.from('profiles').delete().eq('id', user.id);
-    alert("Account deleted.");
+    await supabase.auth.admin.deleteUser(user.id);
+    alert('Account deleted.');
     window.showLogin();
   }
 };
@@ -262,7 +298,7 @@ window.setupSnapScroll = function() {
     });
   });
 
-  document.addEventListener('visibilitychange', function() {
+  document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
       document.querySelectorAll('video').forEach(v => v.pause());
     }
@@ -270,7 +306,7 @@ window.setupSnapScroll = function() {
 };
 
 window.showLogin();
-</script>
 
+</script>
 </body>
 </html>
