@@ -2,11 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Clipz 4.4</title>
+  <title>Clipz 4.5+</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    body { margin: 0; background: black; color: white; font-family: Arial; overflow: hidden; }
-    .section { display: none; flex-direction: column; align-items: center; justify-content: center; height: 100vh; }
+    body { margin: 0; background: black; color: white; font-family: Arial, sans-serif; overflow: hidden; }
+    .section { display: none; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow-y: auto; }
     .btn { margin: 5px; padding: 10px 20px; background: #444; color: white; border: none; border-radius: 10px; cursor: pointer; }
     .feed { height: 100vh; overflow-y: scroll; scroll-snap-type: y mandatory; }
     .feed video { width: 100%; height: 100vh; object-fit: cover; scroll-snap-align: start; }
@@ -64,6 +64,7 @@
   <input id="uploadVideo" type="file" accept="video/*" onchange="window.uploadVideo()">
   <div id="uploadProgress"></div>
   <div id="uploadsList" class="uploads"></div>
+  <button class="btn" style="background:red;" onclick="window.deleteAccount()">Delete My Account</button>
 </div>
 
 <!-- NAV -->
@@ -74,6 +75,7 @@
 </div>
 
 <script type="module">
+
 const supabase = window.supabase.createClient(
   "https://mxrswdcphtnclkioeprj.supabase.co",
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im14cnN3ZGNwaHRuY2xraW9lcHJqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDUwODY4MDcsImV4cCI6MjA2MDY2MjgwN30.XjwMaypnmM_RqLkxjKWjw-JbEc9B4bxyoFaxj-Amo_s"
@@ -113,7 +115,8 @@ window.createAccount = async function() {
     pfpUrl = supabase.storage.from('pfps').getPublicUrl(uploaded.path).data.publicUrl;
   }
 
-  await supabase.from('profiles').insert([{ id: signup.user.id, username, pfp_url: pfpUrl, followers: 0 }]);
+  const { data: { user } } = await supabase.auth.getUser();
+  await supabase.from('profiles').insert([{ id: user.id, username, pfp_url: pfpUrl, followers: 0 }]);
   window.showLogin();
 };
 
@@ -172,7 +175,7 @@ window.loadFeed = async function() {
       const vid = document.createElement('video');
       vid.src = url;
       vid.controls = false;
-      vid.muted = false;
+      vid.muted = true;
       vid.autoplay = false;
       vid.loop = true;
       vid.volume = 1.0;
@@ -224,6 +227,18 @@ window.searchUsers = async function() {
   }
 };
 
+window.deleteAccount = async function() {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+
+  if (confirm("Are you sure you want to DELETE your account forever?")) {
+    await supabase.auth.admin.deleteUser(user.id);
+    await supabase.from('profiles').delete().eq('id', user.id);
+    alert("Account deleted.");
+    window.showLogin();
+  }
+};
+
 window.setupSnapScroll = function() {
   const feed = document.getElementById('feedList');
   feed.addEventListener('scroll', () => {
@@ -245,6 +260,12 @@ window.setupSnapScroll = function() {
         video.pause();
       }
     });
+  });
+
+  document.addEventListener('visibilitychange', function() {
+    if (document.hidden) {
+      document.querySelectorAll('video').forEach(v => v.pause());
+    }
   });
 };
 
