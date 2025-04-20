@@ -2,17 +2,19 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Clipz 4.6.1+</title>
+  <title>Clipz 4.6.2+</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     body { margin: 0; background: black; color: white; font-family: Arial; overflow: hidden; }
-    .section { display: none; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow-y: auto; }
+    .section { display: none; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
     .btn { margin: 5px; padding: 10px 20px; background: #444; color: white; border: none; border-radius: 10px; cursor: pointer; }
     .feed { height: 100vh; overflow-y: scroll; scroll-snap-type: y mandatory; }
     .feed video { width: 100%; height: 100vh; object-fit: cover; scroll-snap-align: start; }
     .bottom-nav { position: fixed; bottom: 0; width: 100%; background: #111; display: flex; justify-content: space-around; padding: 10px; }
+    .profileHeader { padding: 20px; background: #111; width: 100%; text-align: center; }
     .profile-pic { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; margin: 10px; border: 2px solid white; }
-    .uploads { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-top: 10px; }
+    .uploadsContainer { flex: 1; overflow-y: auto; width: 100%; padding: 10px; }
+    .uploads { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
     .uploads video { width: 100%; height: auto; }
     input, button { margin: 5px; padding: 10px; font-size: 16px; border-radius: 8px; }
     #searchResults div { margin: 5px; padding: 5px; cursor: pointer; border-bottom: 1px solid #555; }
@@ -57,13 +59,17 @@
 </div>
 
 <!-- PROFILE -->
-<div id="profileScreen" class="section">
-  <img id="profilePic" class="profile-pic" src="clipz pfp.jpg">
-  <h2 id="profileUsername">Username</h2>
-  <div id="followerCount">Followers: 0</div>
-  <input id="uploadVideo" type="file" accept="video/*" onchange="window.uploadVideo()">
-  <div id="uploadProgress"></div>
-  <div id="uploadsList" class="uploads"></div>
+<div id="profileScreen" class="section" style="flex-direction: column; align-items: center; justify-content: flex-start;">
+  <div class="profileHeader">
+    <img id="profilePic" class="profile-pic" src="clipz pfp.jpg">
+    <h2 id="profileUsername">Username</h2>
+    <div id="followerCount">Followers: 0</div>
+    <input id="uploadVideo" type="file" accept="video/*" onchange="window.uploadVideo()">
+    <div id="uploadProgress"></div>
+  </div>
+  <div class="uploadsContainer">
+    <div id="uploadsList" class="uploads"></div>
+  </div>
 </div>
 
 <!-- NAV -->
@@ -189,9 +195,7 @@ window.loadFeed = async function() {
 
 window.loadProfile = async function(userId) {
   window.hideAll();
-  const screen = document.getElementById('profileScreen');
-  screen.style.display = 'flex';
-  screen.scrollTop = 0;
+  document.getElementById('profileScreen').style.display = 'flex';
   document.getElementById('bottomNav').style.display = 'flex';
 
   const { data: profile } = await supabase.from('profiles').select('*').eq('id', userId).single();
